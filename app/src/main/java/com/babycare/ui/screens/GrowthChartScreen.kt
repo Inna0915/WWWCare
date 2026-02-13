@@ -15,21 +15,73 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.babycare.data.model.Gender
+import com.babycare.data.model.WHOGrowthStandards
+import com.babycare.ui.components.ChartType
+import com.babycare.ui.components.GrowthChart
+import com.babycare.ui.components.GrowthDataPoint
 import com.babycare.ui.theme.*
+import com.babycare.viewmodel.RecordViewModel
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GrowthChartScreen(
     onBackClick: () -> Unit,
-    onRecordListClick: () -> Unit
+    onRecordListClick: () -> Unit,
+    viewModel: RecordViewModel = viewModel()
 ) {
+    // 获取生长记录
+    val growthRecords by viewModel.getAllGrowthRecords().collectAsState(initial = emptyList())
+
+    // 当前选择的指标
     var selectedMetric by remember { mutableStateOf("体重") }
-    val metrics = listOf("体重", "身高", "BMI", "头围", "脚长")
+    val metrics = listOf("体重", "身高", "头围", "BMI", "脚长")
     var selectedStandard by remember { mutableStateOf("WHO（世界卫生组织）标准") }
+
+    // 宝宝性别（默认男孩，可从设置中获取）
+    val gender = remember { Gender.BOY }
+
+    // 根据选择的指标获取对应的数据和百分位
+    val chartType = when (selectedMetric) {
+        "体重" -> ChartType.WEIGHT
+        "身高" -> ChartType.HEIGHT
+        "头围" -> ChartType.HEAD
+        else -> ChartType.WEIGHT
+    }
+
+    // 转换记录为图表数据点
+    val userData = remember(growthRecords, chartType) {
+        growthRecords.mapNotNull { record ->
+            val ageInMonths = calculateAgeInMonths(record.record.startTime)
+            val value = when (chartType) {
+                ChartType.WEIGHT -> record.growthDetail.weight
+                ChartType.HEIGHT -> record.growthDetail.height
+                ChartType.HEAD -> record.growthDetail.headCircumference
+                else -> record.growthDetail.weight
+            }
+            value?.let {
+                GrowthDataPoint(
+                    timestamp = record.record.startTime,
+                    value = it,
+                    ageInMonths = ageInMonths
+                )
+            }
+        }.sortedBy { it.ageInMonths }
+    }
+
+    // 获取 WHO 百分位数据
+    val percentileData = remember(chartType, gender) {
+        when (chartType) {
+            ChartType.WEIGHT -> WHOGrowthStandards.getWeightPercentiles(gender)
+            ChartType.HEIGHT -> WHOGrowthStandards.getHeightPercentiles(gender)
+            ChartType.HEAD -> WHOGrowthStandards.getHeadCircumferencePercentiles(gender)
+            else -> WHOGrowthStandards.getWeightPercentiles(gender)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -159,7 +211,38 @@ fun GrowthChartScreen(
             }
 
             // 图表区域
-            GrowthChart()
+            if (userData.isNotEmpty()) {
+                GrowthChart(
+                    userData = userData,
+                    percentileData = percentileData,
+                    chartType = chartType,
+                    gender = gender,
+                    title = selectedMetric
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(300.dp)
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "暂无数据",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = TextSecondary
+                        )
+                        Text(
+                            text = "请先添加生长记录",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = TextHint
+                        )
+                    }
+                }
+            }
 
             // 生长评价按钮
             Box(
@@ -186,213 +269,19 @@ fun GrowthChartScreen(
     }
 }
 
-@Composable
-private fun GrowthChart() {
-    // 模拟图表数据
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(400.dp)
-            .padding(16.dp)
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            // Y轴标签和网格线
-            val yLabels = listOf("2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13")
-            val xLabels = listOf("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12")
+/**
+ * 计算月龄（从出生到记录日期）
+ */
+private fun calculateAgeInMonths(timestamp: Long): Float {
+    // 这里简化计算，假设出生日期可以通过设置获取
+    // 实际应该从宝宝出生日期计算
+    val calendar = Calendar.getInstance()
+    val recordDate = calendar.apply { timeInMillis = timestamp }
 
-            // 图表主体
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            ) {
-                // 网格线
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.SpaceBetween
-                ) {
-                    repeat(12) { index ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = yLabels.getOrElse(11 - index) { "" },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = TextSecondary,
-                                modifier = Modifier.width(24.dp)
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(0.5.dp)
-                                    .background(Gray200)
-                            )
-                        }
-                    }
-                }
-
-                // 百分位曲线（简化示意）
-                PercentileCurves()
-
-                // 实际数据点
-                DataPoints()
-            }
-
-            // X轴标签
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 24.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                xLabels.forEach { label ->
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextSecondary
-                    )
-                }
-            }
-
-            // X轴标题
-            Text(
-                text = "年龄(月)",
-                style = MaterialTheme.typography.bodySmall,
-                color = TextSecondary,
-                modifier = Modifier.align(Alignment.End)
-            )
-        }
-
-        // Y轴单位
-        Text(
-            text = "单位(kg)",
-            style = MaterialTheme.typography.bodySmall,
-            color = TextSecondary,
-            modifier = Modifier.align(Alignment.BottomStart)
-        )
-    }
-}
-
-@Composable
-private fun PercentileCurves() {
-    // 这里应该使用真实的图表库，如 Compose Charts 或 MPAndroidChart
-    // 现在用简单的Box模拟曲线效果
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(start = 24.dp)
-    ) {
-        // 97% 曲线（红色虚线）
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(2.dp)
-                .background(ChartRed.copy(alpha = 0.5f))
-                .align(Alignment.TopEnd)
-        ) {
-            Text(
-                text = "97%",
-                style = MaterialTheme.typography.bodySmall,
-                color = ChartRed,
-                modifier = Modifier.align(Alignment.CenterEnd)
-            )
-        }
-
-        // 85% 曲线（橙色虚线）
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(0.85f)
-                .height(2.dp)
-                .background(ChartOrange.copy(alpha = 0.5f))
-                .align(Alignment.CenterEnd)
-        ) {
-            Text(
-                text = "85%",
-                style = MaterialTheme.typography.bodySmall,
-                color = ChartOrange,
-                modifier = Modifier.align(Alignment.CenterEnd)
-            )
-        }
-
-        // 50% 曲线（绿色实线）
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(0.7f)
-                .height(2.dp)
-                .background(ChartGreen)
-                .align(Alignment.Center)
-        ) {
-            Text(
-                text = "50%",
-                style = MaterialTheme.typography.bodySmall,
-                color = ChartGreen,
-                modifier = Modifier.align(Alignment.CenterEnd)
-            )
-        }
-
-        // 15% 曲线（橙色虚线）
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(0.5f)
-                .height(2.dp)
-                .background(ChartOrange.copy(alpha = 0.5f))
-                .align(Alignment.CenterStart)
-        ) {
-            Text(
-                text = "15%",
-                style = MaterialTheme.typography.bodySmall,
-                color = ChartOrange,
-                modifier = Modifier.align(Alignment.CenterEnd)
-            )
-        }
-
-        // 3% 曲线（红色虚线）
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(0.3f)
-                .height(2.dp)
-                .background(ChartRed.copy(alpha = 0.5f))
-                .align(Alignment.BottomStart)
-        ) {
-            Text(
-                text = "3%",
-                style = MaterialTheme.typography.bodySmall,
-                color = ChartRed,
-                modifier = Modifier.align(Alignment.CenterEnd)
-            )
-        }
-    }
-}
-
-@Composable
-private fun DataPoints() {
-    // 实际测量数据点（绿色圆点）
-    val dataPoints = listOf(
-        0.1f to 0.9f,   // 3.8kg
-        0.2f to 0.85f,  // 4.2kg
-        0.4f to 0.7f,   // 5.2kg
-        0.6f to 0.5f    // 6.0kg
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(start = 24.dp)
-    ) {
-        dataPoints.forEach { (x, y) ->
-            Box(
-                modifier = Modifier
-                    .size(12.dp)
-                    .offset(
-                        x = (x * 300).dp,
-                        y = (y * 300).dp
-                    )
-                    .clip(CircleShape)
-                    .background(ChartGreen)
-            )
-        }
-    }
+    // 临时方案：使用相对时间（模拟0-24个月）
+    // 实际项目中应该从设置的出生日期计算
+    val now = System.currentTimeMillis()
+    val diffMillis = now - timestamp
+    val diffDays = diffMillis / (1000 * 60 * 60 * 24)
+    return (24 - diffDays / 30f).coerceIn(0f, 24f)
 }

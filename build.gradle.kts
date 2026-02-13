@@ -4,6 +4,12 @@ plugins {
     id("org.jetbrains.kotlin.kapt")
 }
 
+repositories {
+    google()
+    mavenCentral()
+    maven { url = uri("https://jitpack.io") }
+}
+
 android {
     namespace = "com.babycare"
     compileSdk = 34
@@ -75,6 +81,9 @@ dependencies {
     implementation("androidx.room:room-runtime:$roomVersion")
     implementation("androidx.room:room-ktx:$roomVersion")
     kapt("androidx.room:room-compiler:$roomVersion")
+
+    // 图表库 MPAndroidChart
+    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

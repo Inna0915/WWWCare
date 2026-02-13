@@ -60,6 +60,10 @@ enum class SyncStatus {
     FAILED      // 同步失败
 }
 
+enum class Gender {
+    BOY, GIRL
+}
+
 // ==================== 母乳喂养详情 ====================
 @Entity(
     tableName = "breast_feeding_details",
