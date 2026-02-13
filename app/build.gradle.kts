@@ -89,10 +89,6 @@ dependencies {
     // Gson JSON 解析
     implementation("com.google.code.gson:gson:2.10.1")
 
-    // Apache POI Excel 导出
-    implementation("org.apache.poi:poi:5.2.5")
-    implementation("org.apache.poi:poi-ooxml:5.2.5")
-
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")

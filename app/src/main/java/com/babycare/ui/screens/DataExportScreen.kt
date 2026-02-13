@@ -121,19 +121,19 @@ fun DataExportScreen(
 
                     Divider(color = Gray200, thickness = 0.5.dp, modifier = Modifier.padding(vertical = 8.dp))
 
-                    // Excel 导出选项
+                    // CSV 导出选项
                     ExportOptionItem(
                         icon = Icons.Default.TableChart,
                         iconColor = Color(0xFF2196F3),
-                        title = "导出为 Excel",
+                        title = "导出为 CSV",
                         description = "适合查看和分析数据",
                         onClick = {
                             scope.launch {
                                 isExporting = true
-                                val uri = exportManager.exportToExcel(records)
+                                val uri = exportManager.exportToCsv(records)
                                 isExporting = false
                                 exportResult = if (uri != null) {
-                                    ExportResult.Success(uri, "export.xlsx")
+                                    ExportResult.Success(uri, "export.csv")
                                 } else {
                                     ExportResult.Error("导出失败")
                                 }
