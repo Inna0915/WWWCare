@@ -229,20 +229,20 @@ fun DiaperScreen(
             PrimarySaveButton(
                 onClick = {
                     isSaving = true
+                    val (hours, minutes) = parseReminderTime(reminderTime)
                     viewModel.addDiaperRecord(
                         startTime = selectedDateTime,
                         type = selectedType,
                         weight = diaperWeight,
                         poopState = poopState,
                         poopColor = selectedColorName,
-                        photoUri = null, // TODO: 支持拍照后传入
-                        note = note.takeIf { it.isNotEmpty() }
+                        photoUri = null,
+                        note = note.takeIf { it.isNotEmpty() },
+                        enableReminder = isReminderEnabled,
+                        reminderHours = hours,
+                        reminderMinutes = minutes
                     ) { recordId ->
                         isSaving = false
-                        // 如果设置了提醒，可以在这里添加
-                        if (isReminderEnabled) {
-                            // TODO: 设置 WorkManager 提醒
-                        }
                         onSaveSuccess()
                     }
                 },

@@ -8,6 +8,7 @@ import com.babycare.data.dao.GrowthDetailWithRecord
 import com.babycare.data.model.*
 import com.babycare.data.repository.DailyOverview
 import com.babycare.data.repository.RecordRepository
+import com.babycare.worker.ReminderScheduler
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -18,6 +19,7 @@ import kotlinx.coroutines.launch
 class RecordViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository: RecordRepository
+    private val reminderScheduler = ReminderScheduler(application)
 
     // 状态流
     private val _allRecords = MutableStateFlow<List<Record>>(emptyList())
@@ -87,12 +89,25 @@ class RecordViewModel(application: Application) : AndroidViewModel(application) 
         brand: String?,
         stage: String?,
         note: String?,
+        enableReminder: Boolean = false,
+        reminderHours: Int = 3,
+        reminderMinutes: Int = 0,
         onComplete: (String) -> Unit = {}
     ) {
         viewModelScope.launch {
             val id = repository.addBottleFeedingRecord(
                 startTime, amount, feedingType, brand, stage, note
             )
+            if (enableReminder) {
+                val typeStr = when (feedingType) {
+                    BottleFeedingType.BREAST_MILK -> "breast"
+                    BottleFeedingType.MIXED -> "bottle"
+                    BottleFeedingType.FORMULA -> "bottle"
+                    BottleFeedingType.WATER_MILK -> "bottle"
+                    else -> "bottle"
+                }
+                reminderScheduler.scheduleFeedingReminder(id, typeStr, reminderHours, reminderMinutes)
+            }
             loadTodayOverview()
             onComplete(id)
         }
@@ -106,12 +121,19 @@ class RecordViewModel(application: Application) : AndroidViewModel(application) 
         poopColor: String?,
         photoUri: String?,
         note: String?,
+        enableReminder: Boolean = false,
+        reminderHours: Int = 3,
+        reminderMinutes: Int = 0,
         onComplete: (String) -> Unit = {}
     ) {
         viewModelScope.launch {
             val id = repository.addDiaperRecord(
                 startTime, type, weight, poopState, poopColor, photoUri, note
             )
+            // 如果启用提醒，调度换尿布提醒
+            if (enableReminder) {
+                reminderScheduler.scheduleDiaperReminder(id, reminderHours, reminderMinutes)
+            }
             loadTodayOverview()
             onComplete(id)
         }
