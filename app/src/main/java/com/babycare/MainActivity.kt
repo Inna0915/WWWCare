@@ -54,27 +54,27 @@ fun BabyCareApp() {
         }
         "diaper" -> DiaperScreen(
             onBackClick = { currentScreen = "home" },
-            onSaveClick = { currentScreen = "home" }
+            onSaveSuccess = { currentScreen = "home" }
         )
         "sleep" -> SleepTimerScreen(
             onBackClick = { currentScreen = "home" },
-            onSaveClick = { currentScreen = "home" }
+            onSaveSuccess = { currentScreen = "home" }
         )
         "growth" -> GrowthRecordScreen(
             onBackClick = { currentScreen = "home" },
-            onSaveClick = { currentScreen = "home" }
+            onSaveSuccess = { currentScreen = "home" }
         )
         "bottle" -> BottleFeedingScreen(
             onBackClick = { currentScreen = "home" },
-            onSaveClick = { currentScreen = "home" }
+            onSaveSuccess = { currentScreen = "home" }
         )
         "temperature" -> TemperatureScreen(
             onBackClick = { currentScreen = "home" },
-            onSaveClick = { currentScreen = "home" }
+            onSaveSuccess = { currentScreen = "home" }
         )
         "food" -> FoodScreen(
             onBackClick = { currentScreen = "home" },
-            onSaveClick = { currentScreen = "home" }
+            onSaveSuccess = { currentScreen = "home" }
         )
         "vaccine" -> VaccineScreen(
             onBackClick = { currentScreen = "home" },

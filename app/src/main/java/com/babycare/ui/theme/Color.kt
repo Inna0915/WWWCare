@@ -49,4 +49,10 @@ val ChartRed = Color(0xFFEF5350)
 val Gray100 = Color(0xFFF5F5F5)
 val Gray200 = Color(0xFFEEEEEE)
 val Gray300 = Color(0xFFE0E0E0)
+val Gray400 = Color(0xFFBDBDBD)
+val Gray500 = Color(0xFF9E9E9E)
+val Gray800 = Color(0xFF424242)
 val White = Color(0xFFFFFFFF)
+
+// 次级粉色
+val SecondaryPink = Color(0xFFFF8A96)
