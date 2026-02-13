@@ -9,9 +9,11 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import android.net.Uri
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.babycare.data.model.DiaperType
 import com.babycare.data.model.DiaperWeight
@@ -26,6 +28,8 @@ fun DiaperScreen(
     onSaveSuccess: () -> Unit,
     viewModel: RecordViewModel = viewModel()
 ) {
+    val context = LocalContext.current
+
     // UI 状态
     var selectedDateTime by remember { mutableStateOf(System.currentTimeMillis()) }
     var selectedType by remember { mutableStateOf(DiaperType.BOTH) }
@@ -36,6 +40,7 @@ fun DiaperScreen(
     var reminderTime by remember { mutableStateOf("3小时0分") }
     var isReminderEnabled by remember { mutableStateOf(false) }
     var note by remember { mutableStateOf("") }
+    var selectedPhotoUri by remember { mutableStateOf<Uri?>(null) }
 
     // 保存状态
     var isSaving by remember { mutableStateOf(false) }
@@ -196,8 +201,25 @@ fun DiaperScreen(
                                 selectedColor = color
                                 selectedColorName = colorOptions.find { it.first == color }?.second ?: ""
                             },
-                            onPhotoClick = { /* TODO: 打开相机 */ }
+                            onPhotoClick = { }
                         )
+                    }
+
+                    // 拍照记录
+                    if (selectedType != DiaperType.PEE) {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text(
+                                text = "拍照记录",
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    color = TextSecondary
+                                )
+                            )
+                            ImagePicker(
+                                selectedImageUri = selectedPhotoUri,
+                                onImageSelected = { selectedPhotoUri = it },
+                                placeholderText = "添加照片"
+                            )
+                        }
                     }
                 }
             }
@@ -230,13 +252,23 @@ fun DiaperScreen(
                 onClick = {
                     isSaving = true
                     val (hours, minutes) = parseReminderTime(reminderTime)
+
+                    // 保存图片到内部存储
+                    val savedPhotoUri = selectedPhotoUri?.let { uri ->
+                        ImageUtils.saveImageToInternalStorage(
+                            context,
+                            uri,
+                            "diaper_photos"
+                        )
+                    }
+
                     viewModel.addDiaperRecord(
                         startTime = selectedDateTime,
                         type = selectedType,
                         weight = diaperWeight,
                         poopState = poopState,
                         poopColor = selectedColorName,
-                        photoUri = null,
+                        photoUri = savedPhotoUri?.toString(),
                         note = note.takeIf { it.isNotEmpty() },
                         enableReminder = isReminderEnabled,
                         reminderHours = hours,
