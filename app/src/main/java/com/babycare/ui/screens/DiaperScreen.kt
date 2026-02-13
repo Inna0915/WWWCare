@@ -18,8 +18,6 @@ import com.babycare.data.model.DiaperWeight
 import com.babycare.ui.components.*
 import com.babycare.ui.theme.*
 import com.babycare.viewmodel.RecordViewModel
-import java.text.SimpleDateFormat
-import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,9 +40,12 @@ fun DiaperScreen(
     // 保存状态
     var isSaving by remember { mutableStateOf(false) }
 
+    // 对话框显示状态
+    var showDateTimePicker by remember { mutableStateOf(false) }
+    var showReminderPicker by remember { mutableStateOf(false) }
+
     // 时间格式化
-    val timeFormatter = remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()) }
-    val diaperTime = timeFormatter.format(Date(selectedDateTime))
+    val diaperTime = formatDateTime(selectedDateTime)
 
     // 选项映射
     val typeOptions = listOf(
@@ -111,9 +112,7 @@ fun DiaperScreen(
                     label = "更换时间",
                     value = diaperTime,
                     onValueChange = {},
-                    onClick = {
-                        // TODO: 打开时间选择器，更新 selectedDateTime
-                    }
+                    onClick = { showDateTimePicker = true }
                 )
             }
 
@@ -211,7 +210,7 @@ fun DiaperScreen(
                     reminderTime = reminderTime,
                     isEnabled = isReminderEnabled,
                     onToggle = { isReminderEnabled = it },
-                    onTimeClick = { /* TODO: 打开时间选择 */ }
+                    onTimeClick = { showReminderPicker = true }
                 )
             }
 
@@ -258,5 +257,27 @@ fun DiaperScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
         }
+    }
+
+    // 日期时间选择器
+    if (showDateTimePicker) {
+        DateTimePickerDialog(
+            initialDateTime = selectedDateTime,
+            onDismiss = { showDateTimePicker = false },
+            onConfirm = { selectedDateTime = it }
+        )
+    }
+
+    // 提醒时间选择器
+    if (showReminderPicker) {
+        val (initialHours, initialMinutes) = parseReminderTime(reminderTime)
+        ReminderTimePickerDialog(
+            initialHours = initialHours,
+            initialMinutes = initialMinutes,
+            onDismiss = { showReminderPicker = false },
+            onConfirm = { hours, minutes ->
+                reminderTime = formatReminderTime(hours, minutes)
+            }
+        )
     }
 }
